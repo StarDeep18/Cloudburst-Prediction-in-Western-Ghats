@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { CloudLightning, Zap, Info, TrendingUp } from 'lucide-react';
-import { predictCloudburst, normaliseRow, detectSchema } from '../lib/prediction';
+import { normaliseRow, detectSchema } from '../lib/prediction';
 
 const HORIZONS = [
   { id: 'day', label: 'Next Day', sub: '24 hrs' },
@@ -78,10 +78,43 @@ export default function PredictionPanel({ rawData }) {
     if (dataDefaults.windSpeed   != null) setWind(+dataDefaults.windSpeed.toFixed(1));
   };
 
-  const runPrediction = () => {
-    setLoading(true); setResult(null);
-    setTimeout(() => { setResult(predictCloudburst({ rainfall, humidity, pressure, temperature, windSpeed, horizon })); setLoading(false); }, 700);
-  };
+  const runPrediction = async () => {
+
+  setLoading(true);
+  setResult(null);
+
+  try {
+
+    const response = await fetch("http://localhost:5000/predict", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        rainfall,
+        humidity,
+        pressure,
+        temperature,
+        windSpeed,
+        horizon
+      })
+    });
+
+    const data = await response.json();
+
+    setResult({
+      risk: data.risk,
+      probability: data.probability,
+      interpretation: data.interpretation,
+      color: data.color
+    });
+
+  } catch (err) {
+    console.error("Prediction error:", err);
+  }
+
+  setLoading(false);
+};
 
   const rs = result ? RISK_STYLES[result.color] : null;
 
