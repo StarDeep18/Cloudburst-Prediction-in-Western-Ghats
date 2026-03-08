@@ -8,68 +8,64 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// dataset path
-const datasetPath = path.join(__dirname, "..", "dataset", "cloudburst_dataset_large.csv")
+const PORT = 5000
 
-// prediction endpoint
 app.post("/predict", (req, res) => {
 
+    const horizon = req.body.horizon || "day"
+
     console.log("Prediction request received")
+    console.log("Horizon received:", horizon)
 
-    exec(
-        `runhaskell cloudburst.hs "${datasetPath}"`,
-        { cwd: __dirname }, // ensures Haskell runs inside backend folder
-        (error, stdout, stderr) => {
+    const datasetPath = path.join(__dirname, "../dataset/cloudburst_dataset_large.csv")
 
-            if (error) {
-                console.error("Haskell error:", stderr)
+    const command =
+        `runhaskell cloudburst.hs "${datasetPath}" ${horizon}`
 
-                return res.json({
-                    risk: "Error",
-                    probability: 0,
-                    interpretation: stderr,
-                    color: "low"
-                })
-            }
+    exec(command, { cwd: __dirname }, (error, stdout, stderr) => {
 
-            try {
+        if (error) {
+            console.error("Haskell error:", stderr)
 
-                // expected output format from Haskell:
-                // Risk Level|Probability
-                const output = stdout.trim().split("|")
-
-                const risk = output[0]
-                const probability = parseInt(output[1]) || 0
-
-                let color = "low"
-
-                if (probability > 80) color = "high"
-                else if (probability > 50) color = "moderate"
-
-                res.json({
-                    risk,
-                    probability,
-                    interpretation: "Prediction generated using Haskell model analysing dataset.",
-                    color
-                })
-
-            } catch (e) {
-
-                console.error("Parsing error:", e)
-
-                res.json({
-                    risk: "Error",
-                    probability: 0,
-                    interpretation: "Failed to parse Haskell output.",
-                    color: "low"
-                })
-            }
-
+            return res.json({
+                risk: "Error",
+                probability: 0,
+                interpretation: stderr
+            })
         }
-    )
+
+        const output = stdout.trim()
+
+        if (!output.includes("|")) {
+            return res.json({
+                risk: "Error",
+                probability: 0,
+                interpretation: "Invalid output from Haskell"
+            })
+        }
+
+        const parts = output.split("|")
+
+        const risk = parts[0]
+        const probability = parseInt(parts[1])
+
+        let color = "low";
+
+if (probability >= 80) color = "high";
+else if (probability >= 40) color = "moderate";
+else color = "low";
+
+res.json({
+  risk: risk,
+  probability: probability,
+  color: color,
+  interpretation: "Prediction generated from dataset analysis."
+});
+
+    })
 
 })
 
-app.listen(5000, () => {
-    console.log("Haskell backend running on port 5000")
+app.listen(PORT, () => {
+    console.log(`Server running on ${PORT}`)
 })

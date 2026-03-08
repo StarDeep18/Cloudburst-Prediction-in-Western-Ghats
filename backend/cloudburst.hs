@@ -1,18 +1,19 @@
 import System.Environment
 import Text.Read (readMaybe)
 
--- convert string to float safely
+-- safe string → float
 toFloat :: String -> Float
-toFloat s = case readMaybe s of
-    Just v -> v
-    Nothing -> 0
+toFloat s =
+    case readMaybe s of
+        Just v -> v
+        Nothing -> 0
 
--- safe list access
+-- safe column access
 safeGet :: Int -> [String] -> Float
 safeGet i xs =
     if length xs > i then toFloat (xs !! i) else 0
 
--- split CSV row
+-- split CSV line
 splitComma :: String -> [String]
 splitComma [] = []
 splitComma s =
@@ -21,31 +22,29 @@ splitComma s =
         [] -> []
         (_:rest) -> splitComma rest
 
--- extract features from row
-getFeatures :: [String] -> (Float,Float,Float,Float,Float)
-getFeatures cols =
-    let rainfall = safeGet 3 cols
-        humidity = safeGet 5 cols
-        temp     = safeGet 6 cols
-        windU    = safeGet 7 cols
-        windV    = safeGet 8 cols
-        wind     = sqrt (windU*windU + windV*windV)
-        pressure = 1013  -- dataset doesn't contain pressure
-    in (rainfall, humidity, pressure, temp, wind)
+-- column extractors
+getRain r = safeGet 3 r
+getHumidity r = safeGet 4 r
+getPressure r = safeGet 5 r
+getTemp r = safeGet 6 r
+getWind r = safeGet 7 r
 
--- recursive dataset processing
-processRows :: [[String]] -> (Float,Float,Float,Float,Float) -> Int -> (Float,Float,Float,Float,Float)
-processRows [] acc _ = acc
-processRows (r:rs) (sr,sh,sp,st,sw) n =
-    let (rain,hum,pres,temp,wind) = getFeatures r
-    in processRows rs (sr+rain,sh+hum,sp+pres,st+temp,sw+wind) (n+1)
+-- recursion: average calculation
+avgRec :: ( [String] -> Float ) -> [[String]] -> Float -> Int -> Float
+avgRec _ [] total count =
+    if count == 0 then 0 else total / fromIntegral count
 
--- normalization
+avgRec f (r:rs) total count =
+    avgRec f rs (total + f r) (count + 1)
+
+avg f rows = avgRec f rows 0 0
+
+-- normalize value 0–1
 normalize :: Float -> Float -> Float -> Float
-normalize minVal maxVal x =
-    max 0 (min 1 ((x - minVal) / (maxVal - minVal)))
+normalize minv maxv x =
+    max 0 (min 1 ((x - minv) / (maxv - minv)))
 
--- risk classification using guards
+-- guard-based risk classification
 riskLevel :: Int -> String
 riskLevel p
     | p >= 80 = "Extreme Cloudburst Risk"
@@ -53,32 +52,48 @@ riskLevel p
     | p >= 40 = "Moderate Cloudburst Risk"
     | otherwise = "Low Cloudburst Risk"
 
-main :: IO ()
+-- horizon mapping
+horizonDays :: String -> Int
+horizonDays h
+    | h == "day" = 1
+    | h == "week" = 7
+    | h == "month" = 30
+    | h == "year" = 365
+    | otherwise = 1
+
+-- take last N rows
+takeLast :: Int -> [a] -> [a]
+takeLast n xs = reverse (take n (reverse xs))
+
 main = do
+
     args <- getArgs
-    let file = head args
+
+    let file = args !! 0
+    let horizon = args !! 1
 
     content <- readFile file
+
     let rows = map splitComma (tail (lines content))
 
-    let (sr,sh,sp,st,sw) = processRows rows (0,0,0,0,0) 0
-    let count = fromIntegral (length rows)
+    let n = horizonDays horizon
 
-    let avgRain = sr / count
-    let avgHum  = sh / count
-    let avgPres = sp / count
-    let avgTemp = st / count
-    let avgWind = sw / count
+    let recent = takeLast n rows
 
-    -- normalized weighted score
+    let avgRain = avg getRain recent
+    let avgHum = avg getHumidity recent
+    let avgPres = (avg getPressure recent) / 100
+    let avgTemp = avg getTemp recent
+    let avgWind = avg getWind recent
+
     let score =
             0.40 * normalize 0 300 avgRain +
             0.25 * normalize 0 100 avgHum +
             0.15 * normalize 10 40 avgTemp +
             0.10 * normalize 0 25 avgWind +
-            0.10 * normalize 0 100 (1013 - avgPres)
+            0.10 * normalize 950 1050 avgPres
 
-    let probability = round (score * 100)
+    let probability = round (min 95 (score * 100))
 
     let risk = riskLevel probability
 

@@ -56,7 +56,7 @@ export default function App() {
                 {rawData.length.toLocaleString()} rows loaded
               </span>
             )}
-            <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#475569' }}>Western Ghats MVP</span>
+            <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#475569' }}>Western Ghats Predictor</span>
           </div>
         </header>
 

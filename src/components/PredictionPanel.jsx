@@ -91,32 +91,24 @@ export default function PredictionPanel({ rawData }) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        rainfall,
-        humidity,
-        pressure,
-        temperature,
-        windSpeed,
         horizon
       })
     });
 
     const data = await response.json();
 
-    setResult({
-      risk: data.risk,
-      probability: data.probability,
-      interpretation: data.interpretation,
-      color: data.color
-    });
+    setResult(data);
 
   } catch (err) {
-    console.error("Prediction error:", err);
+
+    console.error(err);
+
   }
 
   setLoading(false);
 };
 
-  const rs = result ? RISK_STYLES[result.color] : null;
+  const rs = result ? RISK_STYLES[result.color] || RISK_STYLES.low : null;
 
   // Slider config — use real data ranges if available
   const sliders = [

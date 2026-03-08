@@ -21,7 +21,7 @@ export default function Sidebar({ active, onChange, hasData }) {
           <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#1d5eed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: '0 4px 12px rgba(29,94,237,0.4)' }}>⛈</div>
           <div>
             <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: '#fff', lineHeight: 1.2, margin: 0 }}>Cloudburst</p>
-            <p style={{ fontSize: 11, color: '#475569', lineHeight: 1.2, margin: 0 }}>Western Ghats · MVP</p>
+            <p style={{ fontSize: 11, color: '#475569', lineHeight: 1.2, margin: 0 }}>Western Ghats · Predictor</p>
           </div>
         </div>
       </div>
@@ -46,7 +46,7 @@ export default function Sidebar({ active, onChange, hasData }) {
         })}
       </nav>
       <div style={{ padding: '16px', borderTop: '1px solid #172543' }}>
-        <p style={{ fontSize: 11, fontFamily: 'monospace', color: '#334155', margin: 0 }}>v1.0 · MVP Prototype</p>
+        <p style={{ fontSize: 11, fontFamily: 'monospace', color: '#334155', margin: 0 }}>v1.0 · Predictor</p>
         <p style={{ fontSize: 11, color: '#334155', marginTop: 2 }}>Kerala / Karnataka Region</p>
       </div>
     </aside>
