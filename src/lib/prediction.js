@@ -1,15 +1,3 @@
-/**
- * Cloudburst Prediction Logic
- * Supports both standard column names AND ERA5 meteorological naming.
- *
- * ERA5 mappings (your real dataset):
- *   t2m  → temperature in Kelvin  (convert: K - 273.15 = °C)
- *   u10  → east-west wind (m/s)
- *   v10  → north-south wind (m/s)  → combined: sqrt(u10²+v10²) * 3.6 = km/h
- *   sp   → surface pressure in Pa  (convert: Pa / 100 = hPa)
- */
-
-/** Resolve a field from a row, trying multiple name variants */
 function resolveField(row, ...keys) {
   for (const k of keys) {
     const val = row[k] ?? row[k.toUpperCase()] ?? row[k.toLowerCase()];
@@ -18,7 +6,6 @@ function resolveField(row, ...keys) {
   return NaN;
 }
 
-/** Normalise a raw dataset row into unified physical units */
 export function normaliseRow(row) {
   const rainfall = resolveField(row, 'RAINFALL', 'rainfall');
 
@@ -38,13 +25,12 @@ export function normaliseRow(row) {
     if (!isNaN(sp)) pressure = sp / 100;
   }
 
-  // Wind speed: wind_speed (km/h) or u10+v10 (m/s → km/h)
   let windSpeed = resolveField(row, 'wind_speed', 'WIND_SPEED');
   if (isNaN(windSpeed)) {
     const u10 = resolveField(row, 'u10');
     const v10 = resolveField(row, 'v10');
     if (!isNaN(u10) && !isNaN(v10)) {
-      windSpeed = Math.sqrt(u10 * u10 + v10 * v10) * 3.6; // m/s → km/h
+      windSpeed = Math.sqrt(u10 * u10 + v10 * v10) * 3.6;
     }
   }
 
@@ -57,7 +43,6 @@ export function normaliseRow(row) {
   };
 }
 
-/** Detect which column schema this dataset uses */
 export function detectSchema(rows) {
   if (!rows?.length) return 'standard';
   const cols = Object.keys(rows[0]).map(k => k.toLowerCase());
@@ -72,8 +57,7 @@ export function predictCloudburst({ rainfall, humidity, pressure, temperature, w
   const t  = Number(temperature ?? 25);
   const ws = Number(windSpeed  ?? 0);
 
-  // Feature scoring (each 0–1) — calibrated for real Western Ghats cloudburst ranges
-  const rainfallScore  = Math.min(r / 300, 1);           // real data goes up to 486 mm
+  const rainfallScore  = Math.min(r / 300, 1);          
   const humidityScore  = Math.max(0, (h - 50) / 50);
   const pressureScore  = Math.max(0, (1013 - p) / 30);
   const tempScore      = Math.min(Math.max((t - 20) / 20, 0), 1);
@@ -87,10 +71,9 @@ export function predictCloudburst({ rainfall, humidity, pressure, temperature, w
     tempScore      * weights.temp      +
     windScore      * weights.wind;
 
-  // Interaction boosts
   if (r > 150 && h > 80) prob += 0.12;
   if (p < 990  && r > 100) prob += 0.10;
-  if (ws > 20  && r > 80)  prob += 0.06;  // lower wind threshold for ERA5 m/s derived values
+  if (ws > 20  && r > 80)  prob += 0.06;
 
   const horizonFactor = { day: 1.0, week: 0.88, month: 0.72, year: 0.55 };
   prob *= horizonFactor[horizon] ?? 1.0;
