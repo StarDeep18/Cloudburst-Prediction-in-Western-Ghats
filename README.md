@@ -131,6 +131,12 @@ Horizon dampening:
 
 ---
 
+**AUTHORS**
+Deepak Bharathwaj S
+Kanipakam Poojitha
+
+---
+
 ## 🛠 Tech Stack
 
 | Layer       | Technology             |
