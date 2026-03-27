@@ -132,6 +132,7 @@ Horizon dampening:
 ---
 
 **AUTHORS**
+
 Deepak Bharathwaj S
 
 Kanipakam Poojitha
