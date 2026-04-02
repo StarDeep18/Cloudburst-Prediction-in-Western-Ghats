@@ -1,4 +1,4 @@
-# ⛈ Cloudburst Prediction Dashboard — Western Ghats MVP
+# ⛈ Cloudburst Prediction Dashboard - Western Ghats MVP
 
 A clean, interactive MVP dashboard for predicting cloudburst risk across the Western Ghats region.
 Built with **React + TailwindCSS + Recharts**.
